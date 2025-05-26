@@ -21,12 +21,13 @@ while True:
         else:
             print("No captured files")
             continue
-        file_name = input("Input the name of the file you'd like to release: ").strip()
+        file_name = input("Input the name of the file you'd like to release: ").strip().strip('"')
         success = new_vault.release(file_name)
         if success:
             print(f"Successfully released {file_name}")
         else:
             print("Uh Oh")
     else:
+        print(new_vault.get_pointer_table())
         print("Goodbye!")
         break

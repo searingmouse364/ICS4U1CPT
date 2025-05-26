@@ -67,8 +67,6 @@ class File:
     def get_location(self):
         return self._location
     
-    ###def __del__(self):
-    ###    os.remove(self._location)
 
 class Vault(File):
     def __init__(self, name: str):
@@ -101,24 +99,23 @@ class Vault(File):
             ## Because this makes computation easier
             length_of_table = len(pickle.dumps(self.__pointer_table))
             self.__footer = self.__magic, 20 + length_of_table, length_of_table
-            self.__length = 20 + length_of_table
+            self.__length = 0
 
         else:
             self.__footer = self.get_footer()
             ## Validate that the file is in fact a vault file
             if self.__footer[0] != self.__magic:
                 raise ValueError("File is not a vault file")
-            ## Get length of the vault
+
             self.__pointer_table = self.get_pointer_table_from_file()
-            print(self.__pointer_table)
 
             ## Clears the pointer table and header from file
             with open(self._location, "r+b") as f:
                 f.seek(-self.__footer[1], 2)
                 f.truncate() 
 
+            ## Get length of the vault
             self.__length = len(self.read_bytes())
-            print(self.__length)
 
     def append_footer(self):
         with open(self._location, "ab") as f:
@@ -153,7 +150,7 @@ class Vault(File):
         return magic.decode("utf-8"), offset, length
     
     def __update_footer(self):
-        length_of_table =len(pickle.dumps(self.__pointer_table))
+        length_of_table = len(pickle.dumps(self.__pointer_table))
         self.__footer = self.__magic, length_of_table + 20, length_of_table
 
     def get_pointer_table_from_file(self) -> list[tuple[str, int, int]]:
@@ -178,9 +175,8 @@ class Vault(File):
         contents = file.read_bytes() #Gets the byte data of given file
         len_contents = self.append_bytes(contents) #Appends data to the vault, returning length of total appended data
         self.__add_new_pointer(file.get_name(), self.__length, len_contents)
-        len_pointer_table = len(pickle.dumps(self.__pointer_table)) #New length of the pointer table
         self.__update_footer() #Updating the footer
-        self.__length += len_contents + len_pointer_table + 20 #Updating the length of the vault
+        self.__length += len_contents  #Updating the length of the vault
         os.remove(file.get_location())
     
     def file_exists(self, file_name : str) -> tuple[bool, int | None, int | None]:
@@ -193,8 +189,6 @@ class Vault(File):
 
         - If it does, it returns True, the offset and the length
         - Otherwise, it returns False, None and None
-
-
         """
 
         for pointer in self.__pointer_table:
@@ -221,7 +215,6 @@ class Vault(File):
         return False
     
     def __del__(self): ## Writes updated pointer table to vault when self is cleared from RAM
-        print(self.__length)
         self.append_bytes(self.__pointer_table)
         self.__update_footer()
         self.append_footer()
