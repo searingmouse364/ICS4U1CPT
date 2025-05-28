@@ -4,12 +4,14 @@ File Description: 7Zip clone
 Name: Notorious LB
 """
 
-from fileUtilities import *
+from fileUtilities.file import File
+from fileUtilities.vault import Vault
 
 
 new_vault = Vault("new_vault")
 print("Vault initialized!")
 while True:
+    print(new_vault.get_pointer_table())
     command = input("Select a command, exit, capture, release: ").lower().strip()
     if command == "capture":
         file_name = input("Input the name of the file you'd like to capture: ").strip()
@@ -17,7 +19,7 @@ while True:
         print(f"Successfully captured {file_name}")
     elif command == "release":
         if len(new_vault.get_pointer_table()): 
-            print(' '.join(i[0] for i in new_vault.get_pointer_table()))
+            print(' '.join(i for i in new_vault.get_pointer_table().keys()))
         else:
             print("No captured files")
             continue
@@ -28,6 +30,5 @@ while True:
         else:
             print("Uh Oh")
     else:
-        print(new_vault.get_pointer_table())
         print("Goodbye!")
         break
