@@ -1,9 +1,9 @@
 """
 Date:
-File Description:
+File Description: File wrapper class
 Name: Notorious LB
 """
-import os
+import os, zlib ## Had to replace my own compression and decompression algorithms with zlib because they sucked
 from typing import Callable
 
 
@@ -15,7 +15,21 @@ class File:
         Used to nullify the File().__init__ default and alternative actions, does nothing and returns nothing.\n
         Potentially dangerous, use with caution. 
         """
-        pass    
+        pass 
+
+    @staticmethod
+    def compress(data: bytes) -> bytes: ## Hopefull I will write my own later
+        """
+        Compression algorithm 
+        """
+        return zlib.compress(data)
+
+    @staticmethod
+    def decompress(data: bytes) -> bytes: ## Hopefull I will write my own later
+        """
+        decompression algorithm 
+        """
+        return zlib.decompress(data)  
 
     def __init__(self, path, def_content : str = "", alt_action: Callable[[any], any] | None = None, *args, **kwargs):
         """

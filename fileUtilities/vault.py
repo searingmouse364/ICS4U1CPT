@@ -1,6 +1,6 @@
 """
 Date:
-File Description:
+File Description: Vault class
 Name: Notorious LB
 """
 import os, pickle, struct
@@ -8,7 +8,7 @@ from fileUtilities.file import File
 from fileUtilities.exceptions import VaultError
 
 class Vault(File):
-    def __init__(self, name: str):
+    def __init__(self, path: str):
         """
         Initializer for vaults
 
@@ -27,11 +27,11 @@ class Vault(File):
             - write the 28 byte footer
 
         """
-        super().__init__(f"{name}.vault", alt_action = File.NO_INIT_ACTION)
+        super().__init__(path, alt_action = File.NO_INIT_ACTION)
         ## Magic is used to sign the file as a .vault file
         ## It is 4 bytes long
         self.__magic = 'VULT'
-        if not os.path.isfile(f"{name}.vault"):
+        if not os.path.isfile(path):
             self.__pointer_table : dict[str, list[tuple[int, int]]] = {"?empty": []} # Key is called ?empty, because file names in windows cannot contain "?".
             # Therefore, this avoids potential conflicts. Better solution to come.
             self.__length = 0
@@ -115,6 +115,7 @@ class Vault(File):
         
         free_space =  self.__pointer_table["?empty"].copy()
         contents = file.read_bytes() #Gets the byte data of given file
+        contents = File.compress(contents)
         len_contents = len(contents)
         written = 0
         for slot in free_space:
@@ -150,7 +151,6 @@ class Vault(File):
     
     def file_exists(self, file_name : str) -> tuple[bool, list[tuple[int, int]]]:
         """
-        Linear search
         Checks if a file exists through the pointer table
 
         params:
@@ -164,26 +164,40 @@ class Vault(File):
             return True, file_data
         return False, []
 
-    def release(self, file_name: str) -> bool:
+    def release(self, file_name: str, path: str = "./") -> bool:
         if file_name == "?empty": # Checks that the user is not trying to extract the empty pointers
             raise VaultError('Invalid file name: "?empty"')
         does_file_exist = self.file_exists(file_name) # Retrieve file information and check that it exists
         if does_file_exist[0]:
             file_locations = does_file_exist[1] # List of offsets and lengths 
-            released_file = File(file_name) # Create file
+            released_file = File(rf"{path}/{file_name}") # Create file
+            data = b""
             with open(self._location, "rb") as f:
                 for location in file_locations: # Looping over every (offset, length) pair in the file_locations
                     offset, length = location
                     f.seek(offset, 0) # Go to the offset
-                    data = f.read(length) # Read all the bytes associated in that block with the file
-                    released_file.append_bytes(data) # Append data to a file 
+                    data += f.read(length) # Read all the bytes associated in that block with the file
+            data = File.decompress(data)
+            released_file.write_bytes(data) # Append data to a file 
 
             self.__pointer_table["?empty"].extend(file_locations) # Release the newly freed space to the empty pointer table
             del self.__pointer_table[file_name] # Clear the pointer for the released file from memory
             return True
         return False
     
+    def get_size_of(self, file_name: str) -> int | None:
+        does_file_exist, file_data = self.file_exists(file_name)
+        if does_file_exist:
+            length = 0
+            for pointer in file_data:
+                length += pointer[1]
+            return length
+        return None
+
     def __del__(self): # Writes updated pointer table to vault when self is cleared from RAM
-        self.append_bytes(pickle.dumps(self.__pointer_table))
-        self.__update_footer()
-        self.append_footer()
+        if len(self.__pointer_table.keys()) == 1:
+            os.remove(self._location)
+        else:
+            self.append_bytes(pickle.dumps(self.__pointer_table))
+            self.__update_footer()
+            self.append_footer()
