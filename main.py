@@ -1,5 +1,8 @@
 from initializer import verify_requirements
-verify_requirements()  # Ensures that proper libraries are installed
+try:
+    verify_requirements()  # Ensures that proper libraries are installed
+except FileNotFoundError as e:
+    print(f"Could not find requirements: {e}")
 
 import sys
 from GUI.GUI import GUI

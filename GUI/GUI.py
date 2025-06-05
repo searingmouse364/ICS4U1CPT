@@ -5,10 +5,12 @@ Name: Notorious LB
 """
 import sys
 import os
+
 sys.path.insert(1, os.getcwd()) # Allows importation of Vault and File
 from fileUtilities.vault import Vault
 from fileUtilities.file import File
 from .models import VaultFileSystemModel
+from .FileSearchWorker import FileSearchWorker
 
 
 # Importing required PyQt5 modules
@@ -21,6 +23,7 @@ from PyQt5.QtWidgets import (
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
+    QHBoxLayout,
     QWidget,             
     QSplitter,           
     QHeaderView ,
@@ -30,21 +33,27 @@ from PyQt5.QtWidgets import (
     QAbstractItemView,
     QDialog,
     QListWidget,
-    QPushButton      
+    QPushButton,
+    QLineEdit,
+    QProgressBar,
+    QApplication
     
 )
 
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QDir, pyqtSignal, QThread
 
 
 
 class GUI(QMainWindow):  # Main window class inheriting from QMainWindow
+    search_finished = pyqtSignal(list)  # Signal that sends list of QModelIndex matches
+
     def __init__(self):
         super().__init__()  # Call parent constructor
         self.setWindowTitle("Vault - Archive Manager")  # Window title
         self.setGeometry(100, 100, 900, 600)  # Set window position (x=100, y=100) and size (900x600)
         self.initUI()  # Call custom method to build UI
         self.selected_file_path = None  # Store current file path
+        
 
     def initUI(self):
         # ===== Menu Bar =====
@@ -65,6 +74,36 @@ class GUI(QMainWindow):  # Main window class inheriting from QMainWindow
         compress_action.triggered.connect(self.compress_files)
         toolbar.addAction(compress_action)
 
+        # ===== Search bar =====
+        self.search_bar = QLineEdit()
+        self.search_bar.setPlaceholderText("Search files or folders...")
+        self.search_button = QPushButton("Find Next")
+        self.search_button.clicked.connect(self.find_next_match)
+
+        search_layout = QHBoxLayout()
+        search_layout.addWidget(self.search_bar)
+        search_layout.addWidget(self.search_button)
+
+        self.search_bar.returnPressed.connect(self.start_search)
+
+        self.searching = False
+        self.match_results = []
+        self.current_match_index = -1
+        self.search_finished.connect(self.handle_search_results)
+
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setMinimum(0)
+        self.progress_bar.setVisible(False)
+
+        self.cancel_button = QPushButton("Cancel Search")
+        self.cancel_button.setVisible(False)
+        self.cancel_button.clicked.connect(self.cancel_search)
+
+        # Add to layout
+        search_layout.addWidget(self.search_bar)
+        search_layout.addWidget(self.progress_bar)
+        search_layout.addWidget(self.cancel_button)
+
 
         # ===== Central Widget and Layout =====
         central_widget = QWidget()           # Create a central widget (container)
@@ -84,13 +123,12 @@ class GUI(QMainWindow):  # Main window class inheriting from QMainWindow
         self.tree.setSelectionMode(QAbstractItemView.ExtendedSelection)
 
         # Index for the current directory in the source model
-        cwd_index = self.model.index(os.getcwd())
+        cwd_path = os.getcwd()
+        cwd_index = self.model.index(cwd_path)
 
-
-        # Show full file system but open in current directory
-        self.tree.setRootIndex(self.model.index(""))      # Show full file system
-        self.tree.setCurrentIndex(cwd_index)              # Scroll to current dir
-        self.tree.expand(cwd_index)   
+        self.tree.setRootIndex(self.model.index(QDir.rootPath()))  # Use actual rootPath
+        self.tree.setCurrentIndex(cwd_index)  # Scroll to the current working directory
+        self.tree.expand(cwd_index)
 
         # Layout and signals
         self.tree.setColumnWidth(0, 250)
@@ -107,11 +145,92 @@ class GUI(QMainWindow):  # Main window class inheriting from QMainWindow
 
         # ===== Layout Management =====
         layout = QVBoxLayout()               # Create a vertical layout
+        layout.addLayout(search_layout)
         layout.addWidget(splitter)           # Add the splitter (tree + table)
         central_widget.setLayout(layout)     # Apply layout to the central widget
 
         # ===== Status Bar =====
         self.setStatusBar(QStatusBar(self))  # Create and set a status bar at the bottom
+    
+    def start_search(self):
+
+        self.match_results = []
+        self.current_match_index = -1
+        query = self.search_bar.text().lower()
+        if not query or self.searching:
+            return
+        
+        self.searching = True
+        QMessageBox.information(self, "Search Started", "Searching for your file(s) now")
+        
+
+        root_path = self.model.filePath(self.tree.rootIndex())
+
+        self.search_thread = QThread()
+        self.worker = FileSearchWorker(root_path, query, self.model)
+        self.worker.moveToThread(self.search_thread)
+
+        self.search_thread.started.connect(self.worker.run)
+        self.worker.finished.connect(self.handle_search_results)
+        self.worker.finished.connect(self.cleanup_search)
+        self.worker.progress.connect(self.progress_bar.setValue)
+        self.worker.total_estimated.connect(self.setup_progress_bar)
+        self.worker.progress.connect(self.update_progress)
+
+        self.search_thread.finished.connect(self.search_thread.deleteLater)
+        self.worker.finished.connect(self.worker.deleteLater)
+
+        self.cancel_button.setVisible(True)
+        self.progress_bar.setVisible(True)
+
+        self.search_thread.start()
+
+    def cancel_search(self):
+        if hasattr(self, "worker"):
+            self.worker.cancel()
+        self.cleanup_search([])
+        self.searching = False
+
+    def cleanup_search(self, results):
+        self.cancel_button.setVisible(False)
+        self.progress_bar.setVisible(False)
+        self.progress_bar.setValue(0)
+
+        if self.search_thread.isRunning():
+            self.search_thread.quit()
+            self.search_thread.wait()
+
+
+    def handle_search_results(self, results):
+        self.searching = False
+        self.match_results = results
+        if self.match_results:
+            QMessageBox.information(self, "Search", f"Found {len(self.match_results)} item(s).")
+            self.current_match_index = 0
+            self.highlight_match(self.match_results[0])
+        else:
+            QMessageBox.information(self, "Search", "No match found.")
+
+    def find_next_match(self):
+        if not self.match_results:
+            return
+        self.current_match_index = (self.current_match_index + 1) % len(self.match_results)
+        self.highlight_match(self.match_results[self.current_match_index])
+
+    def highlight_match(self, index):
+        self.tree.expand(index.parent())
+        self.tree.setCurrentIndex(index)
+        self.tree.scrollTo(index)
+
+    def setup_progress_bar(self, total):
+        self.progress_bar.setMaximum(total)
+        self.progress_bar.setValue(0)
+        QApplication.processEvents()  # Force immediate UI update
+
+    def update_progress(self, value):
+        self.progress_bar.setValue(value)
+        QApplication.processEvents()
+
 
     def on_tree_item_clicked(self, index):
         try: 
@@ -147,6 +266,7 @@ class GUI(QMainWindow):  # Main window class inheriting from QMainWindow
             if self.selected_file_path and self.selected_file_path.endswith(".vault"):
                 QMessageBox.information(self, "Extracting", f"Extracting from:\n{self.selected_file_path}")
                 vault = Vault(self.selected_file_path)
+                dir = directory = os.path.dirname(self.selected_file_path)
                 items = [item for item in vault.get_pointer_table().keys() if item != "?empty"]
 
                 dialog = QDialog(self)
@@ -175,11 +295,11 @@ class GUI(QMainWindow):  # Main window class inheriting from QMainWindow
                         return
                     items = [item.text() for item in selected]
                     for item in items:
-                        vault.release(item)
+                        vault.release(item, dir)
                     dialog.accept()
                 def extract_all():
                     for item in items:
-                        vault.release(item)
+                        vault.release(item, dir)
                     dialog.accept()
 
                 extract_selected_btn.clicked.connect(extract_selected)
