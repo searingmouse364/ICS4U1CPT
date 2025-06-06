@@ -1,5 +1,6 @@
 from PyQt5.QtCore import QObject, pyqtSignal
 from time import time
+from functools import lru_cache
 import os
 
 class FileSearchWorker(QObject):
@@ -17,19 +18,21 @@ class FileSearchWorker(QObject):
 
     def cancel(self):
         self._cancelled = True
+
+    @staticmethod
+    @lru_cache(maxsize=None) # Cache result because this function takes a while
+    def parse_dirs_cached(root_path): # Parse all directories in the system
+        all_dirs = []
+        for dirpath, _, _ in os.walk(root_path):
+            all_dirs.append(dirpath)
+        return all_dirs
         
 
     def run(self):
         matches = []
-        all_dirs = []
         self.progress.emit(0)
-        for dirpath, _, _ in os.walk(self.root_path):
-            if self._cancelled:
-                return
-            all_dirs.append(dirpath)
-
-        self.total_estimated.emit(len(all_dirs))  # Send estimated total steps
-
+        all_dirs = FileSearchWorker.parse_dirs_cached(self.root_path)
+        self.total_estimated.emit(len(all_dirs))
         for i, dirpath in enumerate(all_dirs): #Linear search
             if self._cancelled:
                 return  # Stop the thread

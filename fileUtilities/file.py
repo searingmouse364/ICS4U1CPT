@@ -18,16 +18,16 @@ class File:
         pass 
 
     @staticmethod
-    def compress(data: bytes) -> bytes: ## Hopefull I will write my own later
+    def compress(data: bytes) -> bytes: ## Hopefully I will write my own later
         """
         Compression algorithm 
         """
         return zlib.compress(data)
 
     @staticmethod
-    def decompress(data: bytes) -> bytes: ## Hopefull I will write my own later
+    def decompress(data: bytes) -> bytes: ## Hopefully I will write my own later
         """
-        decompression algorithm 
+        Decompression algorithm 
         """
         return zlib.decompress(data)  
 

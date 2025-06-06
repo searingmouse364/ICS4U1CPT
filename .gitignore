@@ -1,13 +1,18 @@
+#ignore all directories
 * 
 
+#Except these ones
 !/GUI
 !/fileUtilities
 !/
 
+#Track these specific files
 !main.py
 !.gitignore
 !requirements.txt
 !initializer.py
+!image.png
+!README.md
 !/fileUtilities/exceptions.py
 !/fileUtilities/file.py
 !/fileUtilities/vault.py
