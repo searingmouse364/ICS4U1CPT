@@ -31,7 +31,7 @@ class File:
         """
         return zlib.decompress(data)  
 
-    def __init__(self, path, def_content : str = "", alt_action: Callable[[any], any] | None = None, *args, **kwargs):
+    def __init__(self, path, default_content : str = "", alt_action: Callable[[any], any] | None = None, *args, **kwargs):
         """
         File handler
 
@@ -50,7 +50,7 @@ class File:
                 alt_action(*args, **kwargs)
             else:
                 with open(path, "w") as f:
-                    f.write(def_content)
+                    f.write(default_content)
 
         self._location = path
         self._name = os.path.basename(path)
@@ -78,6 +78,10 @@ class File:
     def append(self, string: str):
         with open(self._location, "a") as f:
             f.write(string)
+
+    def readlines(self):
+        with open(self._location, "r") as f:
+            return f.readlines()
 
     def get_name(self):
         return self._name

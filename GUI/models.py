@@ -1,3 +1,9 @@
+"""
+Date:
+File Description: Adds the vault icon to .vault files in the file tree
+Name: Notorious LB
+"""
+
 from PyQt5.QtWidgets import QFileSystemModel
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt

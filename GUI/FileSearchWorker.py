@@ -1,3 +1,9 @@
+"""
+Date:
+File Description: Searches file system for user using linear search
+Name: Notorious LB
+"""
+
 from PyQt5.QtCore import QObject, pyqtSignal
 from time import time
 from functools import lru_cache

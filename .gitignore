@@ -4,6 +4,7 @@
 #Except these ones
 !/GUI
 !/fileUtilities
+!/initializer
 !/
 
 #Track these specific files
@@ -21,3 +22,7 @@
 !/GUI/UI.py
 !/GUI/vault_icon.ico
 !/GUI/FileSearchWorker.py
+!/initializer/__init__.py
+!/initializer/DataManager.py
+!/initializer/initializer.py
+!/initializer/register.py

@@ -1,4 +1,4 @@
-# VAULTS
+# VAULTS FOR WINDOWS
 
 Vaults is a simple GUI-based application that allows you to group multiple files into a single archive-like file called a "vault", similar to ZIP files. It enables easy compression, extraction, and management of grouped files using a clean interface.
 
@@ -66,8 +66,6 @@ Creates a new vault:
 - `SHIFT + Left Click`: Selects a range of files.
 - `CTRL + Left Click`: Selects multiple files individually.
 
-## Example
-
-### 🔹 GUI
+## GUI EXAMPLE
 ![alt text](image.png)
 
