@@ -31,6 +31,7 @@ class DataManager(File):
                 self.VARS[KEY] = VALUE
 
     def add_var(self, key, value):
+        """ Add variable to the data file"""
         if key in self.VARS.keys():
             raise DataError("Can't add a variable that already exists. Try using self.edit_var(key, value) instead")
         
@@ -39,6 +40,7 @@ class DataManager(File):
         self.VARS[key] = value
 
     def edit_var(self, key, value):
+        """ Edit variable in the data file"""
         if not self.VARS.get(key):
             raise DataError(f"Variable {key} cannot be changed because it does not exist. Try using self.add_var(key, value) instead")
 
@@ -48,5 +50,6 @@ class DataManager(File):
             FORMAT = f"{key}=={self.VARS[key]}\n"
             super().append(FORMAT)
                 
-    def read_var(self, key) -> str:
+    def read_var(self, key) -> str | None:
+        """ Reads variable in the data file"""
         return self.VARS.get(key)

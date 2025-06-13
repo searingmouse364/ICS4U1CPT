@@ -32,6 +32,13 @@ class Vault(File):
         ## It is 4 bytes long
         self.__magic = 'VULT'
         if not os.path.isfile(path):
+            """
+            The pointer table includes the name of the file as the key and then a list containing tuples
+            in the form (offset, length) where the offset represents the byte-position to start reading and the 
+            length represents how much to read. This allows for the fragmentation of data in the file
+            and a more space-efficient vault.
+            
+            """
             self.__pointer_table : dict[str, list[tuple[int, int]]] = {"?empty": []} # Key is called ?empty, because file names in windows cannot contain "?".
             # Therefore, this avoids potential conflicts. Better solution to come.
             self.__length = 0
@@ -86,6 +93,9 @@ class Vault(File):
         self.__footer = self.__magic, length_of_table + 28, length_of_table, self.__length
 
     def get_pointer_table_from_file(self) -> dict[str , list[tuple[int, int]]]:
+        """
+        Gets pointer table from file, used on vault initialization
+        """
         offset = -self.__footer[1] ## Negative offset because calculating offset from the end of the file is easier
         length_pointer = self.__footer[2] ## Length remains positive
         with open(self._location, "rb") as f:
@@ -105,6 +115,10 @@ class Vault(File):
     
 
     def capture(self, file: File):
+        """
+        Captures file form file system into vault
+        """
+
         file_name = file.get_name()
         #Makes sure the specified file is not the vault file itself
         if file_name == self._name:
@@ -165,6 +179,10 @@ class Vault(File):
         return False, []
 
     def release(self, file_name: str, path: str = "./") -> bool:
+        """
+        Release file from vault into specified path
+        
+        """
         if file_name == "?empty": # Checks that the user is not trying to extract the empty pointers
             raise VaultError('Invalid file name: "?empty"')
         does_file_exist = self.file_exists(file_name) # Retrieve file information and check that it exists
@@ -186,6 +204,9 @@ class Vault(File):
         return False
     
     def get_size_of(self, file_name: str) -> int | None:
+        """
+        Returns size of item in vault in bytes
+        """
         does_file_exist, file_data = self.file_exists(file_name)
         if does_file_exist:
             length = 0
@@ -195,7 +216,7 @@ class Vault(File):
         return None
 
     def __del__(self): # Writes updated pointer table to vault when self is cleared from RAM
-        if len(self.__pointer_table.keys()) == 1:
+        if len(self.__pointer_table.keys()) == 1: ## If the vault has no captured files delete it
             os.remove(self._location)
         else:
             self.append_bytes(pickle.dumps(self.__pointer_table))

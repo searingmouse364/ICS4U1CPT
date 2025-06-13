@@ -153,7 +153,10 @@ class GUI(QMainWindow):  # Main window class inheriting from QMainWindow
         self.setStatusBar(QStatusBar(self))  # Create and set a status bar at the bottom
     
     def start_search(self):
-
+        """
+        Search functionality
+        
+        """
         self.match_results = []
         self.current_match_index = -1
         query = self.search_bar.text().lower()
@@ -192,6 +195,9 @@ class GUI(QMainWindow):  # Main window class inheriting from QMainWindow
         self.searching = False
 
     def cleanup_search(self, results):
+        """
+        Removes vanity elements like the progress bar
+        """
         self.cancel_button.setVisible(False)
         self.progress_bar.setVisible(False)
         self.progress_bar.setValue(0)
@@ -202,6 +208,9 @@ class GUI(QMainWindow):  # Main window class inheriting from QMainWindow
 
 
     def handle_search_results(self, results):
+        """
+        Interprets search results
+        """
         self.searching = False
         self.match_results = results
         if self.match_results:
@@ -212,6 +221,9 @@ class GUI(QMainWindow):  # Main window class inheriting from QMainWindow
             QMessageBox.information(self, "Search", "No match found.")
 
     def find_next_match(self):
+        """
+        Cycles through search results
+        """
         if not self.match_results:
             return
         self.current_match_index = (self.current_match_index + 1) % len(self.match_results)
@@ -233,6 +245,9 @@ class GUI(QMainWindow):  # Main window class inheriting from QMainWindow
 
 
     def on_tree_item_clicked(self, index):
+        """
+        Handles file tree functionality
+        """
         try: 
             # Map from proxy model to source model
             file_info = self.model.fileInfo(index)
@@ -245,7 +260,7 @@ class GUI(QMainWindow):  # Main window class inheriting from QMainWindow
             if file_info.isFile() and file_info.fileName().endswith(".vault"):
                 self.selected_file_path = file_info.absoluteFilePath()
                 vault = Vault(file_path)
-                items = [item for item in vault.get_pointer_table().keys() if item != "?empty"]
+                items = [item for item in vault.get_pointer_table().keys() if item != "?empty"] ## Gets all items except the empty pointers
                 
                 for item in items:
                     row_position = self.table.rowCount()
@@ -262,11 +277,14 @@ class GUI(QMainWindow):  # Main window class inheriting from QMainWindow
         except Exception as e:
             QMessageBox.warning(self, "Error!", str(e))
     def extract_file(self):
+        """
+        Extract button functionality
+        """
         try:
             if self.selected_file_path and self.selected_file_path.endswith(".vault"):
                 QMessageBox.information(self, "Extracting", f"Extracting from:\n{self.selected_file_path}")
                 vault = Vault(self.selected_file_path)
-                dir = directory = os.path.dirname(self.selected_file_path)
+                dir =  os.path.dirname(self.selected_file_path)
                 items = [item for item in vault.get_pointer_table().keys() if item != "?empty"]
 
                 dialog = QDialog(self)
@@ -315,6 +333,9 @@ class GUI(QMainWindow):  # Main window class inheriting from QMainWindow
             QMessageBox.warning(self, "Error!", str(e))
 
     def add_file(self):
+        """
+        Add button functionality
+        """
         try:
             if not self.selected_file_path or not self.selected_file_path.endswith(".vault"):
                     QMessageBox.warning(self, "No Vault Selected", "Please select a .vault file to add files.")
@@ -333,6 +354,9 @@ class GUI(QMainWindow):  # Main window class inheriting from QMainWindow
             QMessageBox.warning(self, "Error!", str(e))
     
     def compress_files(self):
+        """
+        Compress button functionality
+        """
         try:
             selected_indexes = self.tree.selectionModel().selectedIndexes()
 
