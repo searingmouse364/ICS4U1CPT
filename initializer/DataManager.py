@@ -17,10 +17,12 @@ class DataManager(File):
     class used to manage stored data / settings regarding the app
     
     """
-
-    location = os.getcwd() + r"\.dat\dat"
+    data_path = os.getcwd() + r"\.dat"
+    location = data_path +  r"\dat.dat"
 
     def __init__(self):
+        if not os.path.exists(self.data_path):
+            os.mkdir(self.data_path) ## Creates data_path directory on first launch or if it was deleted by the user
         super().__init__(self.location)
         vars = [var.strip().split("==") for var in super().readlines()] # Get vars from self, vars are in tuples of (key, value)
         self.VARS = {}

@@ -46,6 +46,7 @@ def init():
             packages = [(parts[0], parts[1].strip()) 
                         for line in f if (parts := line.split("==")) and len(parts) == 2]
 
+        # === Checks for installed packages  and compares them to requirements.txt === #
         installed = {dist.metadata["Name"].lower(): dist.version for dist in distributions()}
         warnings = []
         uninstalled = []

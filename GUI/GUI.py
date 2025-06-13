@@ -306,6 +306,7 @@ class GUI(QMainWindow):  # Main window class inheriting from QMainWindow
                 extract_all_btn.clicked.connect(extract_all)
                 cancel_btn.clicked.connect(dialog.reject)
                 dialog.exec_()
+                self.selected_file_path = "" # Set file path to ""
                 del vault # Something prevents the vault from being removed from RAM automatically, so write it explicitly 
             else:
                 QMessageBox.warning(self, "No Valid File", "Please select a .vault file to extract.")
